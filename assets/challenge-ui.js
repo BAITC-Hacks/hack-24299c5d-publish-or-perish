@@ -34,7 +34,6 @@ function render() {
  const state=game.getState(), proposed=decision(), preview=proposed?game.previewPlay(proposed):null;
  const forecast=preview?.allowed?preview.forecast:state.forecast;
  const shown=view==='current'?state.current:forecast;
- $('#quarter-header').textContent=state.finished?'СРОК ЗАВЕРШЁН':`КВАРТАЛ ${state.quarter} / 8`;
  $('#quarter-title').textContent=state.finished?'Восемь кварталов позади':`Год ${Math.ceil(state.quarter/4)} · квартал ${(state.quarter-1)%4+1}`;
  $('#quarter-dots').innerHTML=Array.from({length:8},(_,i)=>`<span class="quarter-dot ${i+1<state.quarter||state.finished?'done':i+1===state.quarter?'now':''}" aria-label="Квартал ${i+1}">${i+1}</span>`).join('');
  $('#categories').innerHTML=[['all','▦','Все карты'],...groups].map(([key,icon,name])=>`<button class="category ${key===category?'active':''}" data-category="${key}" aria-pressed="${key===category}"><span class="symbol">${icon}</span>${name}<small>${state.hand.filter(m=>key==='all'||m.direction===key).length}</small></button>`).join('');
