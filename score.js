@@ -280,5 +280,32 @@ function createScenario(initialDecisions = []) {
   });
 }
 
+// Версия A1 фиксирует порядок районов и правила текущего датасета.
+const CODE_DISTRICTS = ['Есиль', 'Алматы', 'Сарыарка', 'Байконур', 'Нура'];
+
+/** Короткий код допустимого набора из пяти мер, одинаковый при любом порядке выбора. */
+function encodeScenario(decisions) {
+  const validation = validateScenario(decisions);
+  if (!validation.valid) throw new TypeError(validation.errors.join(' '));
+  return 'A1:' + [...decisions].sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)))
+    .map(({ id, district }) => id.slice(1) + (MEASURES[id].district ? `.${CODE_DISTRICTS.indexOf(district)}` : '')).join(',');
+}
+
+/** Восстановление и повторная проверка чужого кода: баллам из браузера не доверяем. */
+function decodeScenario(code) {
+  if (typeof code !== 'string' || code.length > 60 || !code.startsWith('A1:')) {
+    throw new TypeError('Неверный код сценария: ожидается формат A1:…');
+  }
+  const decisions = code.slice(3).split(',').map((part) => {
+    const match = /^([1-9]|1[0-4])(?:\.([0-4]))?$/.exec(part);
+    if (!match) throw new TypeError('В коде сценария указано неизвестное мероприятие или район.');
+    return { id: `M${match[1]}`, ...(match[2] === undefined ? {} : { district: CODE_DISTRICTS[Number(match[2])] }) };
+  });
+  const validation = validateScenario(decisions);
+  if (!validation.valid) throw new TypeError(validation.errors.join(' '));
+  return decisions;
+}
+
 export { BUDGET, DECISION_COUNT, HORIZON_QUARTERS, DISTRICTS, WEIGHTS, MEASURES,
-  SYNERGIES, BASELINE_SCORE, validateScenario, calculateScore, getSynergyHints, createScenario };
+  SYNERGIES, BASELINE_SCORE, validateScenario, calculateScore, getSynergyHints, createScenario,
+  encodeScenario, decodeScenario };
