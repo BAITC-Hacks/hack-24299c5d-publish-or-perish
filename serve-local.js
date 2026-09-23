@@ -12,8 +12,8 @@ const files = new Set([
   'example.html', 'checks.html', 'score.js', 'score.checks.js',
   'scenario-picker.js', 'scenario-picker.css', 'analysis.js',
   'analysis.checks.js', 'analysis-api.js', 'scenario-report.js', 'comparison.js',
-  ...['almaty', 'baikonur', 'esil', 'nura', 'saryarka'].map((name) => `ruiling-city/images/${name}.png`),
-  ...['card-ecology', 'card-safety', 'card-services', 'card-social', 'card-transport', 'card_empty'].map((name) => `ruiling-city/images/${name}.png`),
+  'ruiling-city/images/esil.png',
+  ...['card-ecology', 'card-safety', 'card-services', 'card-social', 'card-transport'].map((name) => `ruiling-city/images/${name}.png`),
 ]);
 const types = { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', png: 'image/png' };
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
