@@ -1,0 +1,17 @@
+/* The shared result controller is the same in both interfaces. */
+#results{background:#132c31;color:#ecd9af;border:1px solid #a88950;border-radius:15px;box-shadow:0 20px 80px #000b}
+#results .result-slide{background:#18363a;color:#ecd9af}
+#results .hero-slide{background:#1c3c3b}
+#results .post-header,#results .result-tabs,#results .post-navigation,#results .post-footer{border-color:#46605a}
+#results .result-tabs button{color:#b9c8b4}
+#results .result-tabs [aria-selected=true]{color:#ffe1a1;border-color:#d4ad61}
+#results .post-header small,#results .slide-kicker,#results .decision-tile small,#results .decision-tile span,#results .swap-visual small,#results .swap-numbers small,#results .post-navigation>span,#results .chart-explainer,#results .chart-legend{color:#a8bba8}
+#results .delta-chip{background:#48664a;color:#f0ddb0}
+#results .budget-ring b{background:#1c3c3b}
+#results .formula-note{background:#24483f;color:#dacda9}
+#results .post-navigation>button{background:#274b48;color:#eddbad;border-color:#687553}
+#results .decision-tile{border-color:#486050}
+#results input,#results textarea,#results select{background:#122b31;color:#eddbad;border:1px solid #688575}
+#results h2,#results h3{color:inherit}
+#results .comparison-card,#results .colour-metric{color:#24382e}
+#results .post-footer .quiet{color:#eddbad}

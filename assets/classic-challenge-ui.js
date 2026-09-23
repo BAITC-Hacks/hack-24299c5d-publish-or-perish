@@ -1,6 +1,4 @@
 import { restoreChallenge, saveProgress } from './interface-switch.js';
-import { regions } from './astana-map-data.js';
-import { paintGameBoard, getCardArt } from './tabletop.js';
 import { createChallenge } from '../challenge.js';
 import { MEASURES, DISTRICTS, WEIGHTS, BASELINE_SCORE } from '../score.js';
 
@@ -10,9 +8,16 @@ const sign = value => `${value >= 0 ? '+' : ''}${fmt(value)}`;
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let game = restoreChallenge(createChallenge), category = 'all', district = null, candidateId = null, view = 'forecast';
 const groups = [['Транспорт','↔','Транспорт',['T1','T2']],['Экология','♧','Озеленение',['E1','E2']],['Соцсфера','⌂','Соцсфера',['S1','S2']],['Безопасность','⛨','Безопасность',['B1','B2']],['Сервисы','⚙','Городской сервис',['C1','C2']]];
+const art = {'Транспорт':'transport','Экология':'ecology','Соцсфера':'social','Безопасность':'safety','Сервисы':'services'};
 const icons = {M1:'↔',M2:'◉',M3:'▰',M4:'♧',M5:'♨',M6:'♧',M7:'⌂',M8:'✚',M9:'⚑',M10:'◈',M11:'▤',M12:'▣',M13:'⚒',M14:'⚙'};
 const labels = {T1:'Разгрузка дорог',T2:'Общественный транспорт',E1:'Озеленение',E2:'Качество воздуха',S1:'Школы и детсады',S2:'Поликлиники',B1:'Безопасность улиц',B2:'Безопасность движения',C1:'Надёжность ЖКХ',C2:'Обращения жителей'};
-
+const regions = [
+ ['Сарыарка','M90 95L245 65L310 155L252 215L75 200Z',180,140,'#d8dfba'],
+ ['Байконур','M245 65L430 60L482 166L310 155Z',365,111,'#d4dec9'],
+ ['Алматы','M482 166L620 135L648 286L445 283L360 232L310 155Z',512,212,'#c2d4b0'],
+ ['Есиль','M252 215L310 155L360 232L445 283L431 394L258 375L208 290Z',332,303,'#e2dcbf'],
+ ['Нура','M75 200L252 215L208 290L258 375L95 351L49 278Z',146,279,'#d4d7c4']
+];
 const eventIcons = {donations:'↗',emergency:'⚒',discount:'%',inflation:'↗',ideas:'✦',delays:'◷'};
 const bad = event => (event.budgetDelta || event.handDelta || event.priceDelta * -1) < 0;
 function eventEffect(event) {
@@ -43,7 +48,7 @@ function render() {
  $('#score-caption').textContent=state.finished?'Итоговый результат':preview?.allowed?'Прогноз на конец игры с выбранной картой':'Прогноз на конец 8-го квартала';
  $('#current-score').textContent=fmt(state.current.score);
  $('#current-caption').textContent=state.finished?'после квартала 8':state.quarter===1?'исходное состояние':`после квартала ${state.quarter-1}`;
- $('#stats-title').textContent=district||'Весь город';$('#city').hidden=!district;
+ $('#stats-title').textContent=district||'Весь город';
  $('#preview-badge').hidden=!(preview?.allowed&&view==='forecast');
  document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
  const before=indicators(view==='current'?state.current:state.forecast),after=indicators(shown);
@@ -55,8 +60,7 @@ function render() {
  $('#hand-count').textContent=`В руке: ${state.hand.length}`;
  $('#category-title').textContent=category==='all'?'Карты этого квартала':groups.find(g=>g[0]===category)[2];
  const cards=state.hand.filter(m=>category==='all'||m.direction===category);
- $('#cards').innerHTML=cards.map(m=>{const factor=Math.max(0,8-(state.quarter-1)-m.lag)/8;return `<button class="card ${m.id===candidateId?'chosen':''} ${m.currentCost>state.budget?'unaffordable':''} ${factor===0?'late':''}" data-card="${m.id}" aria-pressed="${m.id===candidateId}"><div class="art"><span class="art-icon">${icons[m.id]}</span><small>ЭСКИЗ ИНИЦИАТИВЫ</small><img src="${getCardArt(m.id)}" alt="" hidden><span class="cost">${m.currentCost}</span></div><div class="card-body"><span class="card-id">${m.id} / ${m.district?'РАЙОН':'ВЕСЬ ГОРОД'} ${m.cost!==m.currentCost?`<small class="old-price">${m.cost} ед.</small>`:''}</span><h3>${esc(m.name)}</h3><div class="effects">${Object.entries(m.effects).map(([k,v])=>`<span class="effect ${v<0?'negative':''}" title="${labels[k]}">${k} ${sign(v*factor)}</span>`).join('')}</div></div><div class="card-foot"><span>${factor===0?'Не успеет к финалу':'Эффект к финалу'}</span><span>Лаг ${m.lag} кв.</span></div></button>`;}).join('')||`<div class="empty-hand">${state.finished?'Испытание завершено. Посмотрите итог или начните новую игру.':state.hand.length?'В этой категории нет карт. Выберите «Все карты».':'Карты закончились. Можно завершить квартал.'}</div>`;
- document.querySelectorAll('.art img').forEach(img=>{img.onload=()=>{img.hidden=false;};img.onerror=()=>img.remove();if(img.complete&&img.naturalWidth)img.hidden=false;});
+ $('#cards').innerHTML=cards.map(m=>{const factor=Math.max(0,8-(state.quarter-1)-m.lag)/8;return `<button class="card ${m.id===candidateId?'chosen':''} ${m.currentCost>state.budget?'unaffordable':''} ${factor===0?'late':''}" data-card="${m.id}" aria-pressed="${m.id===candidateId}"><div class="art"><span class="art-icon">${icons[m.id]}</span><span class="cost">${m.currentCost}</span></div><div class="card-body"><span class="card-id">${m.id} / ${m.district?'РАЙОН':'ВЕСЬ ГОРОД'} ${m.cost!==m.currentCost?`<small class="old-price">${m.cost} ед.</small>`:''}</span><h3>${esc(m.name)}</h3><div class="effects">${Object.entries(m.effects).map(([k,v])=>`<span class="effect ${v<0?'negative':''}" title="${labels[k]}">${k} ${sign(v*factor)}</span>`).join('')}</div></div><div class="card-foot"><span>${factor===0?'Не успеет к финалу':'Эффект к финалу'}</span><span>Лаг ${m.lag} кв.</span></div></button>`;}).join('')||`<div class="empty-hand">${state.finished?'Испытание завершено. Посмотрите итог или начните новую игру.':state.hand.length?'В этой категории нет карт. Выберите «Все карты».':'Карты закончились. Можно завершить квартал.'}</div>`;
  $('#candidate').hidden=!candidateId;
  if(candidateId){const m=MEASURES[candidateId],card=state.hand.find(c=>c.id===candidateId),factor=Math.max(0,8-(state.quarter-1)-m.lag)/8;
  $('#candidate').innerHTML=`<h3>${esc(m.name)}</h3>${m.district?`<label for="district-select">Район реализации</label><select id="district-select"><option value="">Выберите район</option>${Object.keys(DISTRICTS).map(d=>`<option ${district===d?'selected':''}>${d}</option>`).join('')}</select>`:'<p>Эффект во всех пяти районах</p>'}<p>Стоимость: <strong>${card.currentCost} ед.</strong> · Лаг ${m.lag} кв.</p>${Object.entries(m.effects).map(([k,v])=>`<p class="effect-line">${labels[k]} <strong>${sign(v*factor)}</strong></p>`).join('')}<p class="hint">Реализуется ${Math.round(factor*100)}% эффекта к концу игры.</p>${factor===0?'<p class="late-warning">Проект не успеет дать эффект до конца срока.</p>':''}<button id="play" class="primary" ${!preview?.allowed?'disabled':''}>Реализовать инициативу →</button>`;
@@ -67,7 +71,6 @@ function render() {
  $('#end').textContent=state.finished?'Посмотреть итоги →':state.quarter===8?'Завершить срок →':'Завершить квартал →';
  $('#end-note').textContent=state.finished?'Все восемь кварталов завершены':'Неразыгранные карты уйдут. Покупки окончательны.';
  $('#seed-label').textContent=state.seed;
- paintGameBoard({projects:state.projects,preview:preview?.allowed?proposed:null,quarter:state.finished?9:state.quarter});
  $('.hand-note').textContent=state.finished?'Можно начать новое испытание с другим кодом.':'Неразыгранные карты вернутся в колоду. Бюджет сохранится.';
 }
 function showResults(){const s=game.getState(),r=s.forecast;$('#result-content').innerHTML=`<div class="final-score">${fmt(r.score)}</div><div class="summary-badges"><span>${sign(r.score-BASELINE_SCORE)} к исходному</span><span>${s.projects.length} проектов</span><span>Остаток ${s.budget} ед.</span></div>${Object.entries(r.districts).map(([name,d])=>`<div class="result-row"><span>${name}</span><strong>${fmt(d.score)}</strong></div>`).join('')}<p class="result-context">Испытание ${esc(s.seed)} · 8 кварталов · критических показателей ${r.criticalCount} · синергий ${r.synergies.length}</p>`;$('#results').showModal();}

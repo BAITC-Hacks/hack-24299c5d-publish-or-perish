@@ -1,0 +1,24 @@
+.interface-switch{display:flex;align-items:center;gap:5px;flex-shrink:0;font:10px 'Segoe UI',sans-serif;letter-spacing:0;color:inherit}
+.interface-switch select{max-width:115px;padding:6px;border:1px solid #8c997e;border-radius:5px;background:#eef0e5;color:#24382e;font:11px 'Segoe UI',sans-serif;cursor:pointer}
+body[data-interface="game"] .interface-switch select{background:#193237;color:#e7cea0;border-color:#927444}
+.board-actions{flex-wrap:wrap}
+@media(max-width:1100px){.interface-switch>span{display:none}}
+@media(max-width:600px){.interface-switch select{width:77px;padding:5px 1px;font-size:8px}.board-actions{gap:4px}}
+/* Game controls live above the map, with no separate page header. */
+body[data-interface="game"] .layout{height:100dvh}
+body[data-interface="game"] .board-top{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-height:40px}
+body[data-interface="game"] .board-top h1 span{display:none}
+body[data-interface="game"] .board-actions{margin:0 0 0 auto;align-self:center;justify-content:flex-end;align-items:center;gap:5px}
+body[data-interface="game"] .board-actions .mode-tabs{order:0;background:#091b23;border-color:#5c6755;gap:2px}
+body[data-interface="game"] .board-actions .mode-tabs a{color:#a5b7b0;padding:6px 8px;font-size:10px}
+body[data-interface="game"] .board-actions .mode-tabs a[aria-current="page"]{background:linear-gradient(#b88b43,#74582d);color:#fff2ce}
+body[data-interface="game"] .board-actions .quiet{padding:6px;font-size:10px}
+body[data-interface="game"] .interface-switch>span{display:none}
+body[data-interface="game"] .stats-heading{flex-wrap:wrap;gap:5px}
+body[data-interface="game"] .stats-heading #city{margin-left:auto;padding:5px 7px;font-size:9px;white-space:nowrap}
+body[data-interface="game"] #city[hidden]{display:none!important}
+body[data-interface="game"] .board{grid-template-rows:auto minmax(0,1fr) 30px clamp(178px,27vh,260px)}
+body[data-interface="game"].challenge-mode .board{grid-template-rows:25px auto minmax(0,1fr) 23px 23px 178px 0}
+@media(max-height:800px) and (min-width:901px){body[data-interface="game"] .board{grid-template-rows:auto minmax(0,1fr) 25px 186px}body[data-interface="game"].challenge-mode .board{grid-template-rows:25px auto minmax(0,1fr) 23px 23px 178px 0}}
+@media(max-width:900px){body[data-interface="game"] .board{grid-template-rows:auto minmax(0,1fr) 24px 165px}body[data-interface="game"].challenge-mode .board{grid-template-rows:24px auto minmax(0,1fr) 23px 23px 156px 0}}
+@media(max-width:600px){body[data-interface="game"] .board{grid-template-rows:auto minmax(0,1fr) 22px 148px}body[data-interface="game"].challenge-mode .board{grid-template-rows:22px auto minmax(0,1fr) 25px 22px 140px 0}body[data-interface="game"] .board-actions{width:100%;justify-content:flex-start;gap:3px}body[data-interface="game"] .board-actions .mode-tabs a{font-size:8px;padding:5px}body[data-interface="game"] .board-actions .quiet{font-size:8px;padding:5px}body[data-interface="game"] .stats-heading #city{font-size:7px;padding:4px}}
