@@ -3,7 +3,7 @@ import { handleAnalysis } from './analysis-api.js';
 
 const files = new Set([
  'classic.html','classic-challenge.html','assets/classic-game.js','assets/classic-challenge-ui.js',
- 'assets/interface-switch.js','assets/interface-switch.css','assets/results-tabletop.css',
+ 'assets/classic-compact.css','assets/interface-switch.js','assets/interface-switch.css','assets/results-tabletop.css',
  'assets/tabletop.js','assets/tabletop.css','assets/astana-map-data.js','assets/project-icons.js',
  ...['transport','ecology','social','safety','services','M1','M2','M5','M6','M8','M9','M11','M12','M14'].map(name=>'assets/art/'+name+'.png'),
   'assets/tutorial.js', 'assets/tutorial.css', 'assets/game-dialogs.css',
