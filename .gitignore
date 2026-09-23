@@ -4,3 +4,8 @@
 config.local.php
 node_modules/
 *.log
+.tools/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

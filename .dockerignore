@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+config.local.php
+.tools
+.codex
+.agents
+node_modules
+.wrangler
+*.log
+*.pdf
