@@ -6,7 +6,7 @@ const files = new Set([
  'assets/interface-switch.js','assets/interface-switch.css','assets/results-tabletop.css',
  'assets/tabletop.js','assets/tabletop.css','assets/astana-map-data.js','assets/project-icons.js',
  ...['transport','ecology','social','safety','services','M1','M2','M5','M6','M8','M9','M11','M12','M14'].map(name=>'assets/art/'+name+'.png'),
-  'assets/tutorial.js', 'assets/tutorial.css',
+  'assets/tutorial.js', 'assets/tutorial.css', 'assets/game-dialogs.css',
   'challenge-demo.html', 'challenge.js', 'assets/challenge-ui.js', 'assets/challenge.css', 'assets/modes.css',
   'index.html', 'assets/game.js', 'assets/game.css', 'assets/results.js', 'assets/results.css', 'game.checks.js',
   'example.html', 'checks.html', 'score.js', 'score.checks.js',

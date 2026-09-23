@@ -73,7 +73,7 @@ const challengeSteps = [
 ];
 
 const steps = challenge ? challengeSteps : mainSteps;
-const storageKey = `akim-tutorial-${challenge ? 'challenge' : 'main'}-v1`;
+const storageKey = `akim-tutorial-${document.body.dataset.interface || 'classic'}-${challenge ? 'challenge' : 'main'}-v1`;
 const help = document.createElement('button');
 help.type = 'button';
 help.className = 'quiet tutorial-help';

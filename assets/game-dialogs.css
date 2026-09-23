@@ -1,0 +1,70 @@
+/* Scoped game skin: tutorial, every result tab, and the exported slide deck. */
+body[data-interface="game"] .tutorial-dialog{background:radial-gradient(ellipse at top,#294a46,#10282f 75%);color:#eddbb3;border:2px solid #ad8b50;border-radius:15px;box-shadow:0 0 0 4px #0d242a,0 25px 90px #000c;max-height:94dvh;overflow:auto}
+body[data-interface="game"] .tutorial-dialog::backdrop{background:#04151bd9;backdrop-filter:blur(6px)}
+body[data-interface="game"] .tutorial-close{background:#253f3c;border:1px solid #9b804e;color:#f1d392}
+body[data-interface="game"] .tutorial-progress{background:#0c2025}
+body[data-interface="game"] .tutorial-progress span{background:linear-gradient(90deg,#9d773c,#f0d18b)}
+body[data-interface="game"] .tutorial-progress small{right:65px;color:#cbb789}
+body[data-interface="game"] .tutorial-copy h2{font-family:Georgia,serif;color:#f2d8a4;font-weight:400;letter-spacing:0;text-shadow:0 2px 3px #0008}
+body[data-interface="game"] .tutorial-copy>span{color:#d7b56c}
+body[data-interface="game"] .tutorial-copy p{color:#b0c0ae}
+body[data-interface="game"] .tutorial-visual{background:radial-gradient(ellipse at top,#3c5546,#0f292e);border:1px solid #8d784d;box-shadow:inset 0 0 35px #061b28;border-radius:10px}
+body[data-interface="game"] .tutorial-controls{background:#10272c;border-color:#665b3d}
+body[data-interface="game"] .tutorial-dots button{background:#526354}
+body[data-interface="game"] .tutorial-dots button[aria-current=step]{background:#e2bc6d;box-shadow:0 0 7px #cda04a66}
+body[data-interface="game"] :is(.tutorial-directions b,.tutorial-card,.tutorial-plan span,.tutorial-seed,.tutorial-events article,.tutorial-quarters i){background:linear-gradient(135deg,#345047,#183036);color:#e7c986;border:1px solid #9a804c;box-shadow:0 5px 14px #0005}
+body[data-interface="game"] :is(.tutorial-city small,.tutorial-city i,.tutorial-directions small,.tutorial-map span,.tutorial-seed small,.tutorial-seed span,.tutorial-events span){color:#aabbac}
+body[data-interface="game"] :is(.tutorial-city span.goal,.tutorial-seed strong,.tutorial-events b){color:#f2d188}
+body[data-interface="game"] .tutorial-card-icon{width:100%;height:74px;background:#22413b url('art/M1.png') center 45%/cover;color:transparent;border:1px solid #bf9c59}
+body[data-interface="game"] .tutorial-card em{background:#dec07b;color:#243731;border:2px solid #8b713e;border-radius:50%;padding:9px 5px;top:9px;right:9px}
+body[data-interface="game"] .tutorial-card i{background:#203e37;color:#b8d3aa}
+body[data-interface="game"] .tutorial-map i{border-color:#b59a65;background:#3c6758}
+body[data-interface="game"] .tutorial-map i:nth-child(2){background:#555373}
+body[data-interface="game"] .tutorial-map i:nth-child(4){background:#426777}
+body[data-interface="game"] .tutorial-map i:nth-child(5){background:#7b6642}
+body[data-interface="game"] .tutorial-map i.selected{background:#778547;box-shadow:0 0 0 3px #e5c16b,0 0 20px #e5c16b55}
+body[data-interface="game"] :is(.tutorial-plan strong,.tutorial-quarters i:first-child){background:linear-gradient(#b88b43,#74582d);color:#fff0c8}
+body[data-interface="game"] .tutorial-hand i{background:linear-gradient(#14343755,#11272bdd),url('art/transport.png') center/cover;border:2px solid #bd9754;color:#ffe4a0;box-shadow:0 8px 12px #0008;font:bold 15px Georgia,serif}
+body[data-interface="game"] .tutorial-hand i:nth-child(2){background-image:linear-gradient(#14343755,#11272bdd),url('art/ecology.png')}
+body[data-interface="game"] .tutorial-hand i:nth-child(3){background-image:linear-gradient(#14343755,#11272bdd),url('art/social.png')}
+body[data-interface="game"] .tutorial-hand i:nth-child(4){background-image:linear-gradient(#14343755,#11272bdd),url('art/safety.png')}
+body[data-interface="game"] .tutorial-hand i:nth-child(5){background-image:linear-gradient(#14343755,#11272bdd),url('art/services.png')}
+
+body[data-interface="game"] #results{background:#112a30;color:#ecd9af;border:2px solid #a88950;box-shadow:0 0 0 4px #102329,0 20px 80px #000b}
+body[data-interface="game"] :is(#results,.export-content) .result-slide{background:radial-gradient(ellipse at top left,#29493f,#142e35 80%);color:#ecd9af}
+body[data-interface="game"] :is(#results,.export-content) :is(h2,h3){font-family:Georgia,serif;color:#f0d59d;letter-spacing:0;font-weight:400}
+body[data-interface="game"] :is(#results,.export-content) :is(.hero-number,.swap-numbers b){font-family:Georgia,serif;color:#f2d18d}
+body[data-interface="game"] #results :is(.post-header,.post-footer,.post-navigation,.result-tabs){background:linear-gradient(#203c3d,#11282f);border-color:#655e40}
+body[data-interface="game"] #results .post-avatar{border-color:#aa8a50;color:#f0d398;background:#304637;font-family:Georgia,serif}
+body[data-interface="game"] #results .result-tabs button{color:#b9c8b4;background:transparent;border-radius:0}
+body[data-interface="game"] #results .result-tabs [aria-selected=true]{background:linear-gradient(#6a5933,#34483a);color:#ffe2a3;border-color:#d9b56a}
+body[data-interface="game"] #results :is(#comparison-panel,#variables-panel){background:radial-gradient(ellipse at top,#29473f,#132d33);color:#dbcfae}
+body[data-interface="game"] #results :is(.variable-controls,.colour-metric,.comparison-card){background:linear-gradient(135deg,#27433e,#192f33);color:#e5d7b4;border-color:#6b6b4b;border-radius:9px;box-shadow:inset 0 1px #cfb87818,0 5px 12px #0003}
+body[data-interface="game"] #results .colour-metric{border-top-color:var(--metric)}
+body[data-interface="game"] #results .comparison-districts>span{background:#11292e;border:1px solid #52604b;border-radius:5px;color:#c7c9ab}
+body[data-interface="game"] #results .metric-change{background:#10292b;border:1px solid #52604b;border-radius:5px}
+body[data-interface="game"] #results :is(.colour-track,.compare-bar>div){background:#0c2329;box-shadow:inset 0 1px 5px #0007}
+body[data-interface="game"] #results .colour-track>span{background:#fff1c4;border-color:#a48b57}
+body[data-interface="game"] #results :is(.metric-values small,.metric-scale,.comparison-card>small,.comparison-card details,.comparison-empty,.chart-explainer,.chart-legend){color:#a9bca8}
+body[data-interface="game"] #results :is(.comparison-verdict,.gain){color:#b4d392}
+body[data-interface="game"] #results .loss{color:#ed9a7a}
+body[data-interface="game"] #results :is(input,textarea,select){background:#0f282e;color:#efdcb2;border:1px solid #8b8056;border-radius:5px}
+body[data-interface="game"] #results :is(.post-navigation>button,.quiet),body[data-interface="game"] .tutorial-controls .quiet{background:linear-gradient(#324e46,#1b3436);border:1px solid #9b804c;color:#e7d0a0;border-radius:5px}
+body[data-interface="game"] #results #compare-results,body[data-interface="game"] .tutorial-controls .primary{background:linear-gradient(#ba934e,#776032);border:1px solid #d1b577;color:#fff0c5;box-shadow:inset 0 0 0 2px #57412544}
+body[data-interface="game"] #results :is(#result-dots,#presentation-dots) button{background:#58674f}
+body[data-interface="game"] #results :is(#result-dots,#presentation-dots) [aria-current=step]{background:#dfbd74}
+body[data-interface="game"] :is(#results,.export-content) :is(.slide-kicker,.decision-tile small,.decision-tile span,.swap-visual small,.swap-numbers small){color:#afbea5}
+body[data-interface="game"] :is(#results,.export-content) .decision-tile{border-color:#66704b}
+body[data-interface="game"] :is(#results,.export-content) :is(.decision-tile img,.swap-visual img,.advice-art){border:2px solid #b29254;box-shadow:0 4px 12px #0005}
+body[data-interface="game"] :is(#results,.export-content) .delta-chip{background:#42583a;border:1px solid #9b915e;color:#f2d99c;border-radius:5px}
+body[data-interface="game"] :is(#results,.export-content) .budget-ring{background:conic-gradient(#d9b56a var(--spent),#0b242a 0)}
+body[data-interface="game"] :is(#results,.export-content) .budget-ring b{background:#1a3637;color:#f0d298}
+body[data-interface="game"] :is(#results,.export-content) .formula-note{background:#10292d;border:1px solid #626545;color:#cccfab}
+body[data-interface="game"] :is(#results,.export-content) .district-bar>div{background:#0c2228}
+body[data-interface="game"] :is(#results,.export-content) .district-bar i{background:#6c8178}
+body[data-interface="game"] :is(#results,.export-content) .district-bar b{background:#b4bb71}
+body[data-interface="game"].export-deck{background:#0a1c23;color:#ecd9af}
+body[data-interface="game"].export-deck .export-content{border:2px solid #a88950;box-shadow:0 15px 70px #0008}
+body[data-interface="game"].export-deck .export-nav button{background:#304b42;color:#f2d8a1;border:1px solid #ad8d52}
+@media(max-width:650px){body[data-interface="game"] .tutorial-slide{min-height:0;padding:44px 20px 20px;gap:15px}body[data-interface="game"] .tutorial-visual{min-height:190px}body[data-interface="game"] .tutorial-controls{flex-wrap:wrap;gap:12px}}
+@media(max-height:600px){body[data-interface="game"] .tutorial-slide{min-height:0;padding-top:42px}body[data-interface="game"] .tutorial-visual{min-height:180px}}
