@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проверки калькулятора</title>
+  <link rel="stylesheet" href="./scenario-picker.css">
+  <style>body { font: 16px/1.6 system-ui; max-width: 1000px; padding: 24px; margin: auto; } .passed { color: #176349; } .failed { color: #a71919; }</style>
+</head>
+<body>
+  <h1>Проверки калькулятора в браузере</h1>
+  <p id="summary" role="status">Выполняются проверки…</p>
+  <ol id="results"></ol>
+  <script type="module">
+    import { runChecks } from './score.checks.js';
+    const results = runChecks();
+    const failures = results.filter((result) => !result.passed);
+    document.getElementById('summary').textContent = `Пройдено: ${results.length - failures.length} из ${results.length}. Ошибок: ${failures.length}.`;
+    for (const result of results) {
+      const item = document.createElement('li');
+      item.className = result.passed ? 'passed' : 'failed';
+      item.textContent = `${result.passed ? '✓' : '✗'} ${result.name}${result.error ? ` — ${result.error}` : ''}`;
+      document.getElementById('results').append(item);
+    }
+  </script>
+</body>
+</html>

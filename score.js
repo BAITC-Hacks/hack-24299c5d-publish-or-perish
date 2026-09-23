@@ -1,5 +1,5 @@
 // Расчёт итогового балла симулятора «Аким на 5 часов» по заданным формулам.
-// Запуск: node score.js
+// Браузерный модуль ES: подключайте через import в <script type="module">.
 
 const BUDGET = 100;
 const DECISION_COUNT = 5;
@@ -37,174 +37,248 @@ const MEASURES = {
   M14: { name: 'Аварийные бригады ЖКХ + раннее оповещение', direction: 'Сервисы', district: false, cost: 16, lag: 1, effects: { C1: 5, C2: 2 } },
 };
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-function validateScenario(decisions) {
-  const errors = [];
-  if (!Array.isArray(decisions)) return { valid: false, errors: ['Решения необходимо передать в виде массива.'] };
-  if (decisions.length !== DECISION_COUNT) errors.push(`Необходимо выбрать ровно ${DECISION_COUNT} мероприятий.`);
+const SYNERGIES = [
+  { measures: ['M1', 'M2'], indicator: 'T1', amount: 2 },
+  { measures: ['M10', 'M12'], indicator: 'B1', amount: 2 },
+  { measures: ['M5', 'M6'], indicator: 'E2', amount: 2 },
+];
 
-  const ids = decisions.map((decision) => decision?.id);
-  const seen = new Set();
-  for (const [index, decision] of decisions.entries()) {
-    if (!decision || typeof decision !== 'object') {
-      errors.push(`Решение № ${index + 1} должно быть объектом с кодом мероприятия id и, при необходимости, районом district.`);
-      continue;
-    }
-    const measure = MEASURES[decision.id];
-    if (!measure) {
-      errors.push(`В решении № ${index + 1} указан неизвестный код мероприятия «${decision.id}».`);
-      continue;
-    }
-    if (seen.has(decision.id)) errors.push(`${decision.id} повторяется: каждое мероприятие можно выбрать только один раз.`);
-    seen.add(decision.id);
-
-    if (measure.district && !Object.hasOwn(DISTRICTS, decision.district)) {
-      errors.push(`Для ${decision.id} необходимо указать район из исходного набора данных.`);
-    } else if (!measure.district && decision.district !== undefined && decision.district !== null && decision.district !== '') {
-      errors.push(`${decision.id} действует на весь город: район указывать не нужно.`);
-    }
+function freeze(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.values(value).forEach(freeze);
+    Object.freeze(value);
   }
-
-  const cost = decisions.reduce((sum, decision) => sum + (MEASURES[decision?.id]?.cost ?? 0), 0);
-  if (cost > BUDGET) errors.push(`Бюджет превышен: стоимость ${cost}, доступный бюджет ${BUDGET}.`);
-
-  const directionCounts = {};
-  for (const id of ids) {
-    const direction = MEASURES[id]?.direction;
-    if (direction) directionCounts[direction] = (directionCounts[direction] || 0) + 1;
-  }
-  for (const [direction, count] of Object.entries(directionCounts)) {
-    if (count > 2) errors.push(`В одном направлении допускается не более 2 мероприятий; в направлении «${direction}» выбрано ${count}.`);
-  }
-
-  const has = (id) => ids.includes(id);
-  if (has('M1') && has('M3')) errors.push('M1 и M3 несовместимы: выберите либо автобусные полосы, либо ЛРТ, независимо от районов.');
-  for (const [left, right, reason] of [
-    ['M4', 'M7', 'конфликт за участок'],
-    ['M5', 'M13', 'дублирование программы'],
-  ]) {
-    if (has(left) && has(right)) {
-      const a = decisions.find((decision) => decision.id === left)?.district;
-      const b = decisions.find((decision) => decision.id === right)?.district;
-      if (a === b) errors.push(`${left} и ${right} нельзя одновременно реализовать в районе «${a}» (${reason}).`);
-    }
-  }
-
-  return { valid: errors.length === 0, errors, cost, remainingBudget: BUDGET - cost };
+  return value;
 }
+[MEASURES, DISTRICTS, WEIGHTS, SYNERGIES].forEach(freeze);
+const own = (object, key) => typeof key === 'string' && Object.prototype.hasOwnProperty.call(object, key);
+const copyDecision = ({ id, district }) => MEASURES[id].district ? { id, district } : { id };
+const sameDecision = (a, b) => a.id === b.id && (!MEASURES[a.id].district || a.district === b.district);
 
-function calculateScore(decisions) {
-  const validation = validateScenario(decisions);
-  if (!validation.valid) return { valid: false, errors: validation.errors, cost: validation.cost };
+/** Итог требует 5 мер; allowIncomplete разрешает предварительный выбор из 0–5 мер. */
+function validateScenario(decisions, { allowIncomplete = false } = {}) {
+  const issues = [];
+  const add = (code, message, measureIds = [], district = null) => issues.push({ code, message, measureIds, district });
+  if (!Array.isArray(decisions)) {
+    add('INVALID_INPUT', 'Решения необходимо передать в виде массива.');
+    return { valid: false, complete: false, errors: issues.map((issue) => issue.message), issues, cost: null, remainingBudget: null };
+  }
+  if (decisions.length > DECISION_COUNT || (!allowIncomplete && decisions.length !== DECISION_COUNT)) {
+    add('DECISION_COUNT', allowIncomplete ? 'Можно выбрать не более 5 мероприятий.' : 'Для итогового результата необходимо выбрать ровно 5 мероприятий.');
+  }
 
-  const values = Object.fromEntries(
-    Object.entries(DISTRICTS).map(([district, data]) => [district, Object.fromEntries(
-      Object.entries(data).filter(([key]) => key !== 'population'),
-    )]),
-  );
-  const contributions = [];
-
-  for (const decision of decisions) {
-    const measure = MEASURES[decision.id];
-    const realizedFraction = (HORIZON_QUARTERS - measure.lag) / HORIZON_QUARTERS;
-    const targets = measure.district ? [decision.district] : Object.keys(DISTRICTS);
-    const districtDeltas = {};
-    for (const district of targets) {
-      districtDeltas[district] = {};
-      for (const [indicator, fullEffect] of Object.entries(measure.effects)) {
-        const delta = fullEffect * realizedFraction;
-        values[district][indicator] += delta;
-        districtDeltas[district][indicator] = delta;
+  let cost = 0;
+  const seen = new Set();
+  const counts = {};
+  const known = [];
+  // Цикл по индексам также проверяет пустые позиции в разреженном массиве.
+  for (let index = 0; index < decisions.length; index++) {
+    const decision = decisions[index];
+    if (!decision || typeof decision !== 'object' || Array.isArray(decision) || !own(MEASURES, decision.id)) {
+      add('UNKNOWN_MEASURE', `Решение № ${index + 1}: укажите существующий код мероприятия от M1 до M14.`);
+      continue;
+    }
+    const { id, district } = decision;
+    const measure = MEASURES[id];
+    known.push(decision);
+    cost += measure.cost;
+    counts[measure.direction] = (counts[measure.direction] || 0) + 1;
+    if (seen.has(id)) add('DUPLICATE', `${id} уже выбрано: каждое мероприятие разрешено только один раз.`, [id]);
+    seen.add(id);
+    if (measure.district && !own(DISTRICTS, district)) {
+      add('DISTRICT_REQUIRED', `Для ${id} необходимо указать район из исходного набора данных.`, [id]);
+    }
+    if (!measure.district && district !== undefined) {
+      add('CITY_DISTRICT', `${id} действует на весь город: поле district следует опустить.`, [id]);
+    }
+  }
+  if (cost > BUDGET) add('BUDGET', `Бюджет превышен: стоимость ${cost}, доступно ${BUDGET}.`);
+  for (const [direction, count] of Object.entries(counts)) {
+    if (count > 2) add('DIRECTION_LIMIT', `В направлении «${direction}» выбрано ${count} мероприятий; допускается не более 2.`);
+  }
+  if (seen.has('M1') && seen.has('M3')) {
+    add('INCOMPATIBLE', 'M1 и M3 несовместимы во всех районах: выберите либо автобусные полосы, либо ЛРТ.', ['M1', 'M3']);
+  }
+  for (const [a, b, reason] of [['M4', 'M7', 'конфликт за участок'], ['M5', 'M13', 'дублирование программы']]) {
+    for (const left of known.filter((d) => d.id === a)) {
+      if (own(DISTRICTS, left.district) && known.some((d) => d.id === b && d.district === left.district)) {
+        add('INCOMPATIBLE', `${a} и ${b} нельзя выбрать вместе в районе «${left.district}»: ${reason}.`, [a, b], left.district);
       }
     }
-    contributions.push({ id: decision.id, name: measure.name, cost: measure.cost, realizedFraction, deltas: districtDeltas });
   }
-
-  const synergies = [];
-  const addSynergy = (left, right, district, indicator, amount) => {
-    if (decisions.some((d) => d.id === left) && decisions.some((d) => d.id === right)) {
-      values[district][indicator] += amount;
-      synergies.push({ measures: [left, right], district, indicator, amount });
-    }
+  return {
+    valid: issues.length === 0,
+    complete: issues.length === 0 && decisions.length === DECISION_COUNT,
+    errors: issues.map((issue) => issue.message), issues, cost, remainingBudget: BUDGET - cost,
   };
-  // По условиям датасета синергия действует в районе первой меры пары и не масштабируется лагом.
-  addSynergy('M1', 'M2', decisions.find((d) => d.id === 'M1')?.district, 'T1', 2);
-  addSynergy('M10', 'M12', decisions.find((d) => d.id === 'M10')?.district, 'B1', 2);
-  addSynergy('M5', 'M6', decisions.find((d) => d.id === 'M5')?.district, 'E2', 2);
+}
 
+// Внутренняя функция получает только проверенный набор и каждый раз считает от исходных данных.
+function evaluate(decisions) {
+  const values = Object.fromEntries(Object.entries(DISTRICTS).map(([district, data]) => [district,
+    Object.fromEntries(Object.keys(WEIGHTS).map((key) => [key, data[key]])),
+  ]));
+  const contributions = [];
+  // Канонический порядок исключает зависимость арифметики от порядка выбора.
+  const ordered = [...decisions].sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
+  for (const decision of ordered) {
+    const measure = MEASURES[decision.id];
+    const realizedFraction = (HORIZON_QUARTERS - measure.lag) / HORIZON_QUARTERS;
+    const deltas = {};
+    for (const district of measure.district ? [decision.district] : Object.keys(DISTRICTS)) {
+      deltas[district] = {};
+      for (const [indicator, effect] of Object.entries(measure.effects)) {
+        const delta = effect * realizedFraction;
+        values[district][indicator] += delta;
+        deltas[district][indicator] = delta;
+      }
+    }
+    contributions.push({ id: decision.id, name: measure.name, cost: measure.cost, realizedFraction, deltas });
+  }
+  const synergies = [];
+  for (const synergy of SYNERGIES) {
+    const [first, second] = synergy.measures;
+    const receiver = ordered.find((d) => d.id === first);
+    if (receiver && ordered.some((d) => d.id === second)) {
+      values[receiver.district][synergy.indicator] += synergy.amount;
+      synergies.push({ ...synergy, district: receiver.district });
+    }
+  }
   const districts = {};
   let weightedAverage = 0;
   let criticalCount = 0;
   for (const [district, indicators] of Object.entries(values)) {
-    const clipped = Object.fromEntries(Object.entries(indicators).map(([key, value]) => [key, clamp(value, 0, 100)]));
+    const clipped = Object.fromEntries(Object.entries(indicators).map(([key, value]) => [key, Math.min(100, Math.max(0, value))]));
     const score = Object.entries(WEIGHTS).reduce((sum, [key, weight]) => sum + clipped[key] * weight, 0);
-    const critical = Object.entries(clipped).filter(([, value]) => value < 40).map(([key]) => key);
-    criticalCount += critical.length;
+    const criticalIndicators = Object.keys(WEIGHTS).filter((key) => clipped[key] < 40);
+    const deltas = Object.fromEntries(Object.keys(WEIGHTS).map((key) => [key, clipped[key] - DISTRICTS[district][key]]));
+    criticalCount += criticalIndicators.length;
     weightedAverage += score * DISTRICTS[district].population;
-    districts[district] = { indicators: clipped, score, populationShare: DISTRICTS[district].population, criticalIndicators: critical };
+    districts[district] = { indicators: clipped, deltas, score, populationShare: DISTRICTS[district].population, criticalIndicators };
   }
   const minimumDistrictScore = Math.min(...Object.values(districts).map((district) => district.score));
-  const score = 0.7 * weightedAverage + 0.3 * minimumDistrictScore - criticalCount;
+  return { districts, weightedAverage, minimumDistrictScore, criticalCount, criticalPenalty: criticalCount,
+    score: 0.7 * weightedAverage + 0.3 * minimumDistrictScore - criticalCount, synergies, contributions };
+}
+const BASELINE_SCORE = evaluate([]).score;
 
+/** По умолчанию — итоговый расчёт; для текущего выбора передайте allowIncomplete: true. */
+function calculateScore(decisions, options = {}) {
+  const validation = validateScenario(decisions, options);
+  if (!validation.valid) return { ...validation, score: null };
+  const result = evaluate(decisions);
   return {
-    valid: true,
-    cost: validation.cost,
-    remainingBudget: validation.remainingBudget,
-    districts,
-    weightedAverage,
-    minimumDistrictScore,
-    criticalCount,
-    criticalPenalty: criticalCount,
-    score,
-    baselineScore: 52.56,
-    scoreChangeFromBaseline: score - 52.56,
-    synergies,
-    contributions,
+    ...validation, ...result, isPreview: !validation.complete,
+    baselineScore: BASELINE_SCORE, publishedBaselineScore: 52.56,
+    scoreChangeFromBaseline: result.score - BASELINE_SCORE,
   };
 }
 
-module.exports = { BUDGET, DISTRICTS, WEIGHTS, MEASURES, validateScenario, calculateScore };
-
-if (require.main === module) {
-  // Пример допустимого сценария из документа «Датасет районов».
-  const example = [
-    { id: 'M7', district: 'Нура' },
-    { id: 'M8', district: 'Нура' },
-    { id: 'M10', district: 'Нура' },
-    { id: 'M12' },
-    { id: 'M5', district: 'Сарыарка' },
-  ];
-  const result = calculateScore(example);
-  if (!result.valid) {
-    console.error(result.errors.join('\n'));
-    process.exitCode = 1;
-  } else {
-    // Округление используется только при выводе; сам расчёт сохраняет точность.
-    const number = (value) => value.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
-    console.log(`Итоговый балл качества жизни Астаны: ${number(result.score)}`);
-    console.log(`Стоимость: ${result.cost} из ${BUDGET}. Остаток бюджета: ${result.remainingBudget}.`);
-    console.log(`Средневзвешенная оценка города: ${number(result.weightedAverage)}`);
-    console.log(`Минимальная оценка района: ${number(result.minimumDistrictScore)}`);
-    console.log(`Критических показателей: ${result.criticalCount}. Штраф: ${result.criticalPenalty}.`);
-    console.log(`Изменение относительно базового балла из документа (${number(result.baselineScore)}): ${number(result.scoreChangeFromBaseline)}`);
-    console.log('\nРезультаты по районам:');
-    for (const [district, data] of Object.entries(result.districts)) {
-      console.log(`${district}: ${number(data.score)}; доля населения: ${number(data.populationShare * 100)}%.`);
-      console.log(Object.entries(data.indicators).map(([key, value]) => `${key}: ${number(value)}`).join('; '));
-      console.log(`Критические показатели: ${data.criticalIndicators.join(', ') || 'нет'}.`);
-    }
-    console.log('\nСработавшие синергии:');
-    if (result.synergies.length === 0) console.log('Нет.');
-    for (const synergy of result.synergies) {
-      console.log(`${synergy.measures.join(' + ')}: район ${synergy.district}, ${synergy.indicator} +${number(synergy.amount)}.`);
-    }
-    console.log('\nЭффекты мероприятий с учётом лага (до ограничения показателей диапазоном 0–100):');
-    for (const contribution of result.contributions) {
-      console.log(`${contribution.id}: ${contribution.name}. Стоимость: ${contribution.cost}; реализованная доля эффекта: ${number(contribution.realizedFraction * 100)}%.`);
-      for (const [district, deltas] of Object.entries(contribution.deltas)) {
-        console.log(`${district}: ${Object.entries(deltas).map(([key, value]) => `${key} ${value >= 0 ? '+' : ''}${number(value)}`).join('; ')}.`);
-      }
-    }
-  }
+/** Подсказки для выбранного или рассматриваемого варианта, включая район действия бонуса. */
+function getSynergyHints(decisions, candidate) {
+  const existing = validateScenario(decisions, { allowIncomplete: true });
+  if (!existing.valid || !validateScenario([candidate], { allowIncomplete: true }).valid) return [];
+  const selected = decisions.some((d) => sameDecision(d, candidate));
+  const next = selected ? [...decisions] : [...decisions, candidate];
+  return SYNERGIES.filter((s) => s.measures.includes(candidate.id)).map((synergy) => {
+    const [first] = synergy.measures;
+    const partnerId = synergy.measures.find((id) => id !== candidate.id);
+    const partnerSelected = decisions.some((d) => d.id === partnerId);
+    const district = next.find((d) => d.id === first)?.district ?? null;
+    const place = district ? `в районе «${district}»` : `в районе, выбранном для ${first}`;
+    const bonus = `${synergy.indicator} +${synergy.amount} ${place}; бонус не уменьшается лагом.`;
+    let possibleSets;
+    if (partnerSelected) possibleSets = [next];
+    else if (MEASURES[partnerId].district) possibleSets = Object.keys(DISTRICTS).map((d) => [...next, { id: partnerId, district: d }]);
+    else possibleSets = [[...next, { id: partnerId }]];
+    const checks = possibleSets.map((set) => validateScenario(set, { allowIncomplete: true }));
+    const available = checks.some((check) => check.valid);
+    const status = selected && partnerSelected ? 'active' : !available ? 'blocked' : partnerSelected ? 'ready' : 'potential';
+    const errors = available ? [] : [...new Set(checks.flatMap((check) => check.errors))];
+    const introduction = {
+      active: 'Синергия уже действует.',
+      ready: 'При добавлении этой меры сработает синергия.',
+      potential: `Для синергии добавьте ${partnerId} — «${MEASURES[partnerId].name}».`,
+      blocked: `Возможная синергия с ${partnerId} — «${MEASURES[partnerId].name}»; сейчас сочетание недоступно.`,
+    }[status];
+    return { ...synergy, partnerId, district, status, available, errors, text: `${introduction} ${bonus}${errors.length ? ` ${errors.join(' ')}` : ''}` };
+  });
 }
+
+/** Хранилище состояния для главного модуля сайта. Невалидные операции не меняют выбор. */
+function createScenario(initialDecisions = []) {
+  const validation = validateScenario(initialDecisions, { allowIncomplete: true });
+  if (!validation.valid) throw new TypeError(validation.errors.join(' '));
+  let decisions = initialDecisions.map(copyDecision);
+  const listeners = new Set();
+
+  function preview(action, input) {
+    let next;
+    if (action === 'add') next = [...decisions, input];
+    else {
+      if (!decisions.some((d) => d.id === input)) {
+        return freeze({ allowed: false, errors: ['Мероприятие не выбрано.'], issues: [{ code: 'NOT_SELECTED', message: 'Мероприятие не выбрано.' }], score: null, delta: null, result: null });
+      }
+      next = decisions.filter((d) => d.id !== input);
+    }
+    const result = calculateScore(next, { allowIncomplete: true });
+    return freeze({ allowed: result.valid, errors: result.errors, issues: result.issues,
+      score: result.score, delta: result.valid ? result.score - evaluate(decisions).score : null, result });
+  }
+
+  function getOptions() {
+    return freeze(Object.entries(MEASURES).flatMap(([id, measure]) => {
+      const variants = measure.district ? Object.keys(DISTRICTS).map((district) => ({ id, district })) : [{ id }];
+      return variants.map((decision) => {
+        const selected = decisions.some((d) => sameDecision(d, decision));
+        const action = selected ? 'remove' : 'add';
+        const prediction = preview(action, selected ? id : decision);
+        return { key: `${id}:${decision.district ?? 'city'}`, decision, selected, action,
+          disabled: !prediction.allowed, reasons: prediction.errors, issues: prediction.issues,
+          preview: prediction, synergyHints: getSynergyHints(decisions, decision) };
+      });
+    }));
+  }
+
+  function getState() {
+    const result = calculateScore(decisions, { allowIncomplete: true });
+    return freeze({ decisions: decisions.map(copyDecision), result, canFinalize: result.complete,
+      remainingSlots: DECISION_COUNT - decisions.length, options: getOptions() });
+  }
+
+  function replace(next, type) {
+    const check = validateScenario(next, { allowIncomplete: true });
+    if (!check.valid) return freeze({ ok: false, errors: check.errors, issues: check.issues, state: getState() });
+    decisions = next.map(copyDecision);
+    const state = getState();
+    const event = freeze({ type });
+    // Ошибка обработчика интерфейса не должна прерывать уведомление остальных подписчиков.
+    for (const listener of [...listeners]) {
+      try { listener(state, event); } catch (error) { console.error('Ошибка обработчика изменения сценария:', error); }
+    }
+    return { ok: true, errors: [], issues: [], state };
+  }
+
+  return Object.freeze({
+    getState, getOptions,
+    previewAdd: (decision) => preview('add', decision),
+    previewRemove: (id) => preview('remove', id),
+    add: (decision) => replace([...decisions, decision], 'add'),
+    remove: (id) => decisions.some((d) => d.id === id)
+      ? replace(decisions.filter((d) => d.id !== id), 'remove')
+      : freeze({ ok: false, errors: ['Мероприятие не выбрано.'], issues: [{ code: 'NOT_SELECTED', message: 'Мероприятие не выбрано.' }], state: getState() }),
+    setDecisions: (next) => replace(next, 'replace'),
+    reset: () => replace([], 'reset'),
+    finalize: () => freeze(calculateScore(decisions)),
+    subscribe(listener) {
+      if (typeof listener !== 'function') throw new TypeError('Подписчик должен быть функцией.');
+      listeners.add(listener);
+      try { listener(getState(), { type: 'init' }); } catch (error) { listeners.delete(listener); throw error; }
+      return () => listeners.delete(listener);
+    },
+  });
+}
+
+export { BUDGET, DECISION_COUNT, HORIZON_QUARTERS, DISTRICTS, WEIGHTS, MEASURES,
+  SYNERGIES, BASELINE_SCORE, validateScenario, calculateScore, getSynergyHints, createScenario };

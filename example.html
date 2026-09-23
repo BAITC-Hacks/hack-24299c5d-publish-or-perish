@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Аким на 5 часов — пример выбора мероприятий</title>
+  <link rel="stylesheet" href="./scenario-picker.css">
+  <style>
+    body { margin: 0; background: #f4f7f9; font-family: system-ui, sans-serif; color: #182d3b; }
+    main { max-width: 1150px; margin: auto; padding: 32px 20px; }
+    h1 { margin: 0 0 8px; }
+    .intro { margin: 0 0 24px; }
+    #final-result { white-space: pre-wrap; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Аким на 5 часов</h1>
+    <p class="intro">Соберите пять мероприятий в пределах бюджета 100 единиц. Балл пересчитывается при каждом изменении.</p>
+    <div id="measures"></div>
+    <output id="final-result" aria-live="polite"></output>
+  </main>
+  <script type="module">
+    import { mountScenarioPicker } from './scenario-picker.js';
+    const root = document.getElementById('measures');
+    const output = document.getElementById('final-result');
+    root.addEventListener('scenariochange', () => { output.textContent = ''; });
+    root.addEventListener('scenariofinalize', (event) => {
+      const result = event.detail;
+      output.textContent = `Итоговый балл: ${result.score.toLocaleString('ru-RU', { maximumFractionDigits: 4 })}. Критических показателей: ${result.criticalCount}.`;
+    });
+    mountScenarioPicker(root);
+  </script>
+</body>
+</html>
