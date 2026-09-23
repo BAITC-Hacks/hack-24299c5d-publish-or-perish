@@ -1,8 +1,12 @@
-import { createScenario, MEASURES, DISTRICTS, WEIGHTS, HORIZON_QUARTERS, BASELINE_SCORE } from '../score.js';
+import { createScenario, MEASURES, DISTRICTS, WEIGHTS, HORIZON_QUARTERS, BASELINE_SCORE, encodeScenario } from '../score.js';
+import { analyzeScenario } from '../analysis.js';
+import { buildScenarioReport } from '../scenario-report.js';
+import { mountResults } from './results.js';
 const $ = s => document.querySelector(s);
 const game = createScenario();
 let category = 'Транспорт', district = null, candidateId = null;
 const groups = [['Транспорт','↔','Транспорт',['T1','T2']],['Экология','♧','Озеленение',['E1','E2']],['Соцсфера','⌂','Соцсфера',['S1','S2']],['Безопасность','⛨','Безопасность',['B1','B2']],['Сервисы','⚙','Городской сервис',['C1','C2']]];
+const art = {'Транспорт':'transport','Экология':'ecology','Соцсфера':'social','Безопасность':'safety','Сервисы':'services'};
 const icons = {M1:'↔',M2:'◉',M3:'▰',M4:'♧',M5:'♨',M6:'♧',M7:'⌂',M8:'✚',M9:'⚑',M10:'◈',M11:'▤',M12:'▣',M13:'⚒',M14:'⚙'};
 const labels = {T1:'Разгрузка дорог',T2:'Общественный транспорт',E1:'Озеленение',E2:'Качество воздуха',S1:'Школы и детсады',S2:'Поликлиники',B1:'Безопасность улиц',B2:'Безопасность движения',C1:'Надёжность ЖКХ',C2:'Обращения жителей'};
 const regions = [
@@ -33,15 +37,15 @@ function render(){
  const markers=regions.flatMap(([name,,x,y])=>state.decisions.filter(d=>!MEASURES[d.id].district||d.district===name).map((d,i)=>`<text class="map-marker" x="${x-35+i*19}" y="${y+47}">${icons[d.id]}</text>`));
  $('#map-markers').innerHTML=markers.join('');$('#map-help').textContent=district?`${district} · ${Math.round(DISTRICTS[district].population*100)}% населения города`:'Нажмите на район, чтобы изучить показатели';
  $('#category-title').textContent=groups.find(g=>g[0]===category)[2];
- $('#cards').innerHTML=Object.entries(MEASURES).filter(([,m])=>m.direction===category).map(([id,m])=>{const played=state.decisions.some(d=>d.id===id);return `<button class="card ${id===candidateId?'chosen':''} ${played?'played':''}" data-card="${id}" aria-pressed="${id===candidateId}"><div class="art"><span class="art-icon">${icons[id]}</span><small>ЭСКИЗ ИНИЦИАТИВЫ</small><img src="assets/cards/${id}.webp" alt="" hidden><span class="cost">${m.cost}</span></div><div class="card-body"><span class="card-id">${id} / ${played?'ВЫБРАНО':m.district?'РАЙОН':'ВЕСЬ ГОРОД'}</span><h3>${escape(m.name)}</h3><div class="effects">${Object.entries(m.effects).map(([k,v])=>`<span class="effect ${v<0?'negative':''}" title="${labels[k]}">${k} ${sign(v*(HORIZON_QUARTERS-m.lag)/HORIZON_QUARTERS)}</span>`).join('')}</div></div><div class="card-foot"><span>Эффект за 2 года</span><span>Лаг ${m.lag} кв.</span></div></button>`}).join('');
+ $('#cards').innerHTML=Object.entries(MEASURES).filter(([,m])=>m.direction===category).map(([id,m])=>{const played=state.decisions.some(d=>d.id===id);const options=state.options.filter(o=>o.decision.id===id&&(!m.district||!district||o.decision.district===district));const blocked=!played&&options.every(o=>o.disabled);const tooltip=[...new Set(options.flatMap(o=>[...o.synergyHints.map(h=>h.text),...(blocked?o.reasons:[])]))].join(' ');return `<button class="card ${id===candidateId?'chosen':''} ${played?'played':''}" data-card="${id}" ${blocked?'disabled':''} title="${escape(tooltip)}" aria-pressed="${id===candidateId}"><div class="art"><span class="art-icon">${icons[id]}</span><small>ЭСКИЗ ИНИЦИАТИВЫ</small><img src="ruiling-city/images/card-${art[m.direction]}.png" alt="" hidden><span class="cost">${m.cost}</span></div><div class="card-body"><span class="card-id">${id} / ${played?'ВЫБРАНО':m.district?'РАЙОН':'ВЕСЬ ГОРОД'}</span><h3>${escape(m.name)}</h3><div class="effects">${Object.entries(m.effects).map(([k,v])=>`<span class="effect ${v<0?'negative':''}" title="${labels[k]}">${k} ${sign(v*(HORIZON_QUARTERS-m.lag)/HORIZON_QUARTERS)}</span>`).join('')}</div></div><div class="card-foot"><span>Эффект за 2 года</span><span>Лаг ${m.lag} кв.</span></div></button>`}).join('');
  document.querySelectorAll('.art img').forEach(img=>{img.onload=()=>{img.hidden=false};img.onerror=()=>img.remove();if(img.complete&&img.naturalWidth)img.hidden=false;});
  $('#candidate').hidden=!candidateId;
  if(candidateId){const m=MEASURES[candidateId];const already=state.decisions.some(d=>d.id===candidateId);const hints=candidate?state.options.find(o=>o.decision.id===candidate.id&&o.decision.district===candidate.district)?.synergyHints||[]:[];
- $('#candidate').innerHTML=`<h3>${escape(m.name)}</h3>${m.district?`<label for="district-select">Район реализации</label><select id="district-select"><option value="">Выберите район на карте или здесь</option>${Object.keys(DISTRICTS).map(d=>`<option ${d===district?'selected':''}>${d}</option>`).join('')}</select>`:'<p>Эффект во всех пяти районах</p>'}<p>Стоимость: <strong>${m.cost} ед.</strong> · Задержка ${m.lag} кв.</p>${hints.map(h=>`<p class="hint">${escape(h.text)}</p>`).join('')}<button id="play" class="primary" ${!prediction?.allowed||already?'disabled':''}>${already?'Уже в вашем сценарии':'Реализовать инициативу →'}</button>`;
+ $('#candidate').innerHTML=`<h3>${escape(m.name)}</h3>${m.district?`<label for="district-select">Район реализации</label><select id="district-select"><option value="">Выберите район на карте или здесь</option>${Object.keys(DISTRICTS).map(d=>`<option ${state.options.find(o=>o.decision.id===candidateId&&o.decision.district===d)?.disabled?'disabled':''} ${d===district?'selected':''}>${d}</option>`).join('')}</select>`:'<p>Эффект во всех пяти районах</p>'}<p>Стоимость: <strong>${m.cost} ед.</strong> · Задержка ${m.lag} кв.</p>${hints.map(h=>`<p class="hint">${escape(h.text)}</p>`).join('')}<button id="play" class="primary" ${!prediction?.allowed||already?'disabled':''}>${already?'Уже в вашем сценарии':'Реализовать инициативу →'}</button>`;
  $('#notice').textContent=already?'Чтобы изменить район, сначала отмените это решение.':prediction&&!prediction.allowed?prediction.errors.join(' '):m.district&&!district?'Выберите район для предпросмотра.':'';
  }else $('#notice').textContent='';
  $('#count').textContent=`${state.decisions.length} / 5`;
- $('#selected').innerHTML=Array.from({length:5},(_,i)=>{const d=state.decisions[i];return d?`<div class="slot"><span class="number">0${i+1}</span><div><strong>${escape(MEASURES[d.id].name)}</strong><small>${d.district||'Весь город'} · ${MEASURES[d.id].cost} ед.</small></div><button data-remove="${d.id}" aria-label="Отменить ${escape(MEASURES[d.id].name)}">×</button></div>`:`<div class="slot empty"><span class="number">0${i+1}</span>Место для следующего решения</div>`}).join('');
+ $('#selected').innerHTML=Array.from({length:5},(_,i)=>{const d=state.decisions[i];return d?`<div class="slot"><span class="number">0${i+1}</span><div><strong>${escape(MEASURES[d.id].name)}</strong><small>${d.district||'Весь город'} · ${MEASURES[d.id].cost} ед.</small></div><button data-remove="${d.id}" title="После отмены: ${fmt(game.previewRemove(d.id).score)} (${sign(game.previewRemove(d.id).delta)})" aria-label="Отменить ${escape(MEASURES[d.id].name)}">×</button></div>`:`<div class="slot empty"><span class="number">0${i+1}</span>Место для следующего решения</div>`}).join('');
  $('#finish').disabled=!state.canFinalize;
 }
 document.addEventListener('click',event=>{
@@ -53,9 +57,38 @@ document.addEventListener('click',event=>{
  if(e.id==='city'){district=null;render();}
  if(e.id==='play'){const d=decision();if(d){const result=game.add(d);if(result.ok)candidateId=null;render();}}
  if(e.id==='reset'){if(!game.getState().decisions.length||confirm('Сбросить все выбранные решения?')){candidateId=null;district=null;game.reset();render();}}
- if(e.id==='finish'){const r=game.finalize();if(!r.valid)return;$('#result-content').innerHTML=`<div class="final-score">${fmt(r.score)}</div><div class="summary-badges"><span>${sign(r.score-BASELINE_SCORE)} к исходному</span><span>${r.cost} / 100 бюджета</span></div>${Object.entries(r.districts).map(([name,d])=>`<div class="result-row"><span>${name}</span><strong>${fmt(d.score)}</strong></div>`).join('')}<p style="margin-top:18px">Критических показателей: <strong>${r.criticalCount}</strong> · Синергий: <strong>${r.synergies.length}</strong></p>`;$('#results').showModal();}
+ if(e.id==='finish'){const r=game.finalize();if(!r.valid)return;$('#scenario-code').value=encodeScenario(game.getState().decisions);resultView.show(buildScenarioReport(game.getState().decisions));$('#results').showModal();requestAnalysis();}
  if(e.id==='close-results'||e.id==='continue')$('#results').close();
 });
 document.addEventListener('change',e=>{if(e.target.id==='district-select'){district=e.target.value||null;render();}});
 $('#map').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset.district){e.preventDefault();district=e.target.dataset.district;render();}});
 render();
+
+// Ответ относится только к подтверждённому набору и текущим кодам сравнения.
+let pendingAnalysis = null;
+function cancelAnalysis() {
+ pendingAnalysis?.abort(); pendingAnalysis=null;
+ $('#analyze-again').disabled=false;
+ $('#ai-result').textContent='';
+}
+async function requestAnalysis() {
+ if(pendingAnalysis || !game.getState().canFinalize)return;
+ const controller=new AbortController();pendingAnalysis=controller;
+ $('#analyze-again').disabled=true;
+ $('#ai-result').textContent='ИИ анализирует решения…';
+ try {
+  const codes=$('#other-codes').value.split(/[\s;]+/).filter(Boolean);
+  const result=await analyzeScenario(game.getState().decisions,codes,{signal:controller.signal});
+  if(pendingAnalysis===controller)$('#ai-result').textContent=result.analysis;
+ }catch(error){
+  if(pendingAnalysis===controller)$('#ai-result').textContent=error.message;
+ }finally{
+  if(pendingAnalysis===controller){pendingAnalysis=null;$('#analyze-again').disabled=false;}
+ }
+}
+game.subscribe((state,event)=>{if(event.type!=='init'){cancelAnalysis();$('#results').close();}});
+$('#other-codes').addEventListener('input',()=>{cancelAnalysis();$('#ai-result').textContent='Коды изменены. Нажмите «Обновить анализ».';});
+$('#analyze-again').addEventListener('click',requestAnalysis);
+$('#results').addEventListener('close',cancelAnalysis);
+
+const resultView=mountResults();

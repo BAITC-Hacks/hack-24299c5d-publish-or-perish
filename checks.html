@@ -14,7 +14,8 @@
   <script type="module">
     import { runChecks } from './score.checks.js';
     import { runAnalysisChecks } from './analysis.checks.js';
-    const results = [...runChecks(), ...await runAnalysisChecks()];
+    import { runGameChecks } from './game.checks.js';
+    const results = [...runChecks(), ...await runAnalysisChecks(), ...await runGameChecks()];
     const failures = results.filter((result) => !result.passed);
     document.getElementById('summary').textContent = `Пройдено: ${results.length - failures.length} из ${results.length}. Ошибок: ${failures.length}.`;
     for (const result of results) {
