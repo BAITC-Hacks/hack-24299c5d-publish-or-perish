@@ -11,6 +11,7 @@
     h1 { margin: 0 0 8px; }
     .intro { margin: 0 0 24px; }
     #final-result { white-space: pre-wrap; overflow-wrap: anywhere; }
+    textarea { display: block; width: 100%; max-width: 650px; margin: 8px 0 20px; padding: 10px; font: inherit; }
   </style>
 </head>
 <body>
@@ -18,18 +19,40 @@
     <h1>Аким на 5 часов</h1>
     <p class="intro">Соберите пять мероприятий в пределах бюджета 100 единиц. Балл пересчитывается при каждом изменении.</p>
     <div id="measures"></div>
+    <label for="other-codes">Коды других результатов для сравнения (до 10, каждый с новой строки)</label>
+    <textarea id="other-codes" rows="3" placeholder="A1:5.2,7.4,8.4,10.4,12"></textarea>
+    <p id="scenario-code"></p>
     <output id="final-result" aria-live="polite"></output>
   </main>
   <script type="module">
     import { mountScenarioPicker } from './scenario-picker.js';
+    import { encodeScenario } from './score.js';
+    import { analyzeScenario } from './analysis.js';
     const root = document.getElementById('measures');
     const output = document.getElementById('final-result');
-    root.addEventListener('scenariochange', () => { output.textContent = ''; });
-    root.addEventListener('scenariofinalize', (event) => {
-      const result = event.detail;
-      output.textContent = `Итоговый балл: ${result.score.toLocaleString('ru-RU', { maximumFractionDigits: 4 })}. Критических показателей: ${result.criticalCount}.`;
+    const codeOutput = document.getElementById('scenario-code');
+    const others = document.getElementById('other-codes');
+    let pending;
+    const cancel = () => {
+      pending?.abort(); pending = null;
+      output.textContent = ''; codeOutput.textContent = '';
+    };
+    root.addEventListener('scenariochange', cancel);
+    others.addEventListener('input', cancel);
+    root.addEventListener('scenariofinalize', async () => {
+      if (pending) return; // Повторный щелчок не создаёт второй запрос.
+      const decisions = component.scenario.getState().decisions;
+      codeOutput.textContent = `Ваш код: ${encodeScenario(decisions)}`;
+      const request = pending = new AbortController();
+      output.textContent = 'ИИ анализирует подтверждённые решения…';
+      try {
+        const result = await analyzeScenario(decisions, others.value.split(/\s+/).filter(Boolean), { signal: request.signal });
+        if (!request.signal.aborted) output.textContent = result.analysis;
+      } catch (error) {
+        if (!request.signal.aborted) output.textContent = error.message;
+      } finally { if (pending === request) pending = null; }
     });
-    mountScenarioPicker(root);
+    const component = mountScenarioPicker(root);
   </script>
 </body>
 </html>

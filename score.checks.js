@@ -1,5 +1,5 @@
 // Проверки запускаются в браузере; отдельный сервер вычислений не требуется.
-import { BASELINE_SCORE, MEASURES, calculateScore, createScenario, validateScenario } from './score.js';
+import { BASELINE_SCORE, MEASURES, calculateScore, createScenario, validateScenario, encodeScenario, decodeScenario } from './score.js';
 import { mountScenarioPicker } from './scenario-picker.js';
 
 const sample = [
@@ -32,6 +32,20 @@ export function runChecks() {
     close(result.weightedAverage, 58.0776);
     assert(result.cost === 95 && result.remainingBudget === 5 && result.criticalCount === 0);
     assert(result.synergies.length === 1 && result.synergies[0].district === 'Нура');
+  });
+  check('Короткий код сохраняет пять решений и не зависит от порядка', () => {
+    const code = encodeScenario(sample);
+    assert(code === 'A1:5.2,7.4,8.4,10.4,12');
+    assert(code === encodeScenario([...sample].reverse()));
+    close(calculateScore(decodeScenario(code)).score, 56.54307);
+    assert(encodeScenario(decodeScenario(code)) === code);
+  });
+  check('Коды с неверными районами, повторами, конфликтами и неполным выбором отклоняются', () => {
+    for (const code of ['A2:5.2,7.4,8.4,10.4,12', 'A1:12', 'A1:5.2,7.4,8.4,10.4,12.0', 'A1:5.9,7.4,8.4,10.4,12', 'A1:5.2,7.4,7.4,10.4,12', 'A1:4.4,7.4,8.4,10.4,12']) {
+      let rejected = false;
+      try { decodeScenario(code); } catch { rejected = true; }
+      assert(rejected, `Не отклонён код ${code}`);
+    }
   });
   check('Перестановка решений не меняет результат', () => {
     assert(JSON.stringify(calculateScore(sample)) === JSON.stringify(calculateScore([...sample].reverse())));
